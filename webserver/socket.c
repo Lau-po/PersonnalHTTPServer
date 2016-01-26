@@ -36,7 +36,7 @@ int creer_serveur(int port){
 					/* traitement d ' erreur */
 				}
 				/* On peut maintenant dialoguer avec le client */
-				const char * message_bienvenue = " Bonjour , bienvenue sur mon serveur \ n " ;
+				const char * message_bienvenue = " Bonjour , bienvenue sur mon serveur \n  " ;
 				write ( socket_client , message_bienvenue , strlen ( message_bienvenue ));
 			}
 		}
