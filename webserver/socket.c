@@ -4,6 +4,7 @@
 
 int creer_serveur(int port){
 	int socket_serveur ;
+	int optval = 1;
 	struct sockaddr_in saddr ;
 	saddr.sin_family = AF_INET ; /* Socket ipv4 */
 	saddr.sin_port = htons (port); /* Port d ' écoute */
@@ -14,6 +15,11 @@ int creer_serveur(int port){
 		perror ( " socket_serveur " );
 		return -1;
 		/* traitement de l ' erreur */
+	}
+	if(setsockopt(socket_serveur, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) == -1){
+		perror("Can't set REUSEADDR");
+		close(socket_serveur);
+		return -1;
 	}
 	if ( bind ( socket_serveur , ( struct sockaddr *)& saddr , sizeof ( saddr )) == -1)
 	{
