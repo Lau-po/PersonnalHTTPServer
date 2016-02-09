@@ -3,10 +3,24 @@
 # include <signal.h>
 # include "socket.h"
 
+void traitement_signal(int sig)
+{
+	fprintf(stdout,"catch %d",sig);
+}
+
 void initialiser_signaux(void){
+	struct sigaction sa;
+	
+	sa.sa_handler = traitement_signal;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART;
+	if(sigaction(SIGCHLD, &sa, NULL) == -1)
+	{
+		perror("sigaction(SIGCHLD)");
+	}
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 	{
-		perror("Mauvaise gestion des signals");
+		perror("signal(SIGPIPE, SIG_IGN)");
 	}
 }
 
@@ -34,7 +48,6 @@ int main( int argc , char ** argv )
 			}
 			if(pid == 0)
 			{
-				printf("Un client");
 				if ( socket_client == -1)
 				{
 					perror ( "can't accept " );	
