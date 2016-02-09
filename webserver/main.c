@@ -1,16 +1,20 @@
-# include <stdio.h>
-# include <string.h>
-# include <signal.h>
 # include "socket.h"
 
 void traitement_signal(int sig)
-{
-	fprintf(stdout,"catch %d",sig);
+{	
+	int status;
+	switch(sig){
+		case(SIGCHLD):
+		waitpid((pid_t)(-1), &status , WNOHANG |  WUNTRACED);	
+		printf("I killed my child :'(\n");
+		fflush(stdout);
+		break;
+	}
 }
 
 void initialiser_signaux(void){
-	struct sigaction sa;
 	
+	struct sigaction sa;	
 	sa.sa_handler = traitement_signal;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
@@ -18,25 +22,26 @@ void initialiser_signaux(void){
 	{
 		perror("sigaction(SIGCHLD)");
 	}
-	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+	
+	/*if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 	{
 		perror("signal(SIGPIPE, SIG_IGN)");
-	}
+	}*/
 }
 
 
 int main( int argc , char ** argv )
 {
 	int error_sig;
-	initialiser_signaux();
 	int socket_fd ;
 	char buffer[10];
 	int socket_client ;
 	char discut[256];	
 	const char * message_bienvenue = " Bonjour , bienvenue sur mon serveur \n  " ;
-	int pid;
+	int pid;	
+	initialiser_signaux();
 	if( (socket_fd = creer_serveur(8080)) != -1)
-	{	
+	{			
 		while(1)
 		{
 			error_sig = 0; 
