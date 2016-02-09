@@ -41,6 +41,7 @@ int main( int argc , char ** argv )
 					error_sig = -1;
 				}
 			}
+			close(socket_client);
 		}
 	}
 	close(socket_fd);
