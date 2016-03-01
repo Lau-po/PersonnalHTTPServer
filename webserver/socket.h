@@ -7,6 +7,8 @@
 # include <signal.h>
 # include <sys/wait.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <regex.h>
 
 #ifndef __SOCKET_H__
 #define __SOCKET_H__

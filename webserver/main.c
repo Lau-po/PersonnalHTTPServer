@@ -37,6 +37,8 @@ int main( int argc , char ** argv )
 	char buffer[10];
 	int socket_client ;
 	char discut[1024];
+	char * temp;
+	temp = malloc(sizeof(char)*32);
 	const char * message_bienvenue = " Bonjour , bienvenue sur mon serveur \n  " ;
 	int pid;	
 	initialiser_signaux();
@@ -55,40 +57,59 @@ int main( int argc , char ** argv )
 			}
 			if(pid == 0)
 			{
-				//printf("Nouvelle connection\n");
-				fflush(stdout);
 				if ( socket_client == -1 || socket_file == NULL)
 				{
 					perror ( "can't accept " );	
 					error_sig == 1;
 					return -1;
 					/* traitement d ' erreur */
-				}else{
-				/* On peut maintenant dialoguer avec le client */
-				//write ( socket_client , message_bienvenue , strlen ( message_bienvenue ));
-				fprintf(socket_file,message_bienvenue);
-				fflush(socket_file);
 				}
-				while(error_sig == 0)
-				{
-					bzero(discut,1024);
-					if(fgets(discut,1024,socket_file) != NULL)
-					{	
-						//printf("Passage à l'envoi\n %s \n",discut);fflush(stdout);
-						if(fprintf(socket_file,"<Pawnee> %s", discut) < 0)
-						{
-							fflush(socket_file);
-							error_sig = -1;
+				bzero(discut,1024);
+				if(fgets(discut,1024,socket_file) != NULL)
+				{	
+					if(strstr(strncpy(temp,discut,3),"GET") > 0 && discut[3] == ' '){
+						int valid = 0; int cpt = -1; int http = 0;
+						while(valid < 3){
+							cpt++;
+							if(discut[cpt] == ' '){
+								valid++;
+							}else if(discut[cpt] == '\n' && valid == 2){
+								valid++;
+							}
 						}
-					}else{
-						error_sig = -1;
+						if(valid == 3 && discut[cpt] != '\n'){			
+							printf("It's a trap!\n");
+							fflush(stdout);								
+						}else{			
+							temp = malloc(sizeof(char)*cpt);
+							strncpy(temp,discut,cpt);
+							int err;
+   							regex_t preg;
+   							const char *str_regex = "HTTP/[1].[0-1]";
+   							err = regcomp (&preg, str_regex, REG_NOSUB | REG_EXTENDED);
+   							if (err == 0)
+   							{	
+   								int match;	
+   								match = regexec (&preg, temp, 0, NULL, 0);
+      							regfree (&preg);
+      							if(match == 0){
+									printf("Message %s",discut);
+									fflush(stdout);	
+      							}else{
+									printf("It's a trap!\n");
+									fflush(stdout);
+      							}
+   							}
+						}
+					}else{			
+						printf("It's a trap!\n");
+						fflush(stdout);
 					}
-					//printf("Tour de boucle\n");fflush(stdout);
+				}else{
+					perror("fgets ");
 				}
-				//printf("Sortie de boucle\n");fflush(stdout);
 				exit(0);
 			}
-			//printf("Fausse couche\n");fflush(stdout);
 			close(socket_file);
 			close(socket_client);
 		}
