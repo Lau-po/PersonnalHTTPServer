@@ -6,8 +6,8 @@ void traitement_signal(int sig)
 	switch(sig){
 		case(SIGCHLD):
 		waitpid((pid_t)(-1), &status , WNOHANG |  WUNTRACED);	
-		//printf("I killed my child :'(\n");
-		//fflush(stdout);
+		printf("I killed my child :'(\n");
+		fflush(stdout);
 		break;
 	}
 }
@@ -29,6 +29,54 @@ void initialiser_signaux(void){
 	}*/
 }
 
+int test_request(FILE * file){
+	int its_ok = 0; 
+	int err;
+	int match;
+	char * discut;
+	discut = malloc(sizeof(char)*1024);
+	bzero(discut,1024);
+	const char *get_regex = "GET /(\\S*) HTTP/1.[0-1]\r";	
+	const char *host_regex = "Host: (\\S*):[0-9]{1,5}\r";
+	regex_t get_reg;
+	regex_t host_reg;
+
+	err = regcomp (&get_reg, get_regex, REG_NOSUB | REG_EXTENDED);
+	if (err != 0)
+	{
+		perror("regex1");
+		return 500;
+	}
+	err = regcomp (&host_reg, host_regex, REG_NOSUB | REG_EXTENDED);
+	if (err != 0)
+	{
+		perror("regex2");
+		return 500;
+	}
+	if(fgets(discut,1024,file) !=NULL){
+		match = regexec (&get_reg, discut, 0, NULL, 0);
+		regfree (&get_reg);
+		if(match == 0){
+			bzero(discut,1024);
+			while(fgets(discut,1024,file) != NULL && its_ok != 200){
+				match = regexec (&host_reg, discut, 0, NULL, 0);
+				regfree (&host_reg);
+				if(match == 0){
+					its_ok = 200;
+				}
+				bzero(discut,1024);
+			}
+			if(its_ok == 0){
+				its_ok = 400;
+			}
+		}
+	}else{
+		its_ok = 400;
+	}
+
+	return its_ok;
+}
+
 
 int main( int argc , char ** argv )
 {
@@ -36,13 +84,11 @@ int main( int argc , char ** argv )
 	int socket_fd ;
 	char buffer[10];
 	int socket_client ;
-	char discut[1024];
-	char * temp;
-	temp = malloc(sizeof(char)*32);
 	const char * message_bienvenue = " Bonjour , bienvenue sur mon serveur \n  " ;
 	int pid;	
 	initialiser_signaux();
 	FILE *socket_file;
+
 	if( (socket_fd = creer_serveur(8080)) != -1)
 	{			
 		while(1)
@@ -64,50 +110,20 @@ int main( int argc , char ** argv )
 					return -1;
 					/* traitement d ' erreur */
 				}
-				bzero(discut,1024);
-				if(fgets(discut,1024,socket_file) != NULL)
-				{	
-					if(strstr(strncpy(temp,discut,3),"GET") > 0 && discut[3] == ' '){
-						int valid = 0; int cpt = -1; int http = 0;
-						while(valid < 3){
-							cpt++;
-							if(discut[cpt] == ' '){
-								valid++;
-							}else if(discut[cpt] == '\n' && valid == 2){
-								valid++;
-							}
-						}
-						if(valid == 3 && discut[cpt] != '\n'){			
-							printf("It's a trap!\n");
-							fflush(stdout);								
-						}else{			
-							temp = malloc(sizeof(char)*cpt);
-							strncpy(temp,discut,cpt);
-							int err;
-   							regex_t preg;
-   							const char *str_regex = "HTTP/[1].[0-1]";
-   							err = regcomp (&preg, str_regex, REG_NOSUB | REG_EXTENDED);
-   							if (err == 0)
-   							{	
-   								int match;	
-   								match = regexec (&preg, temp, 0, NULL, 0);
-      							regfree (&preg);
-      							if(match == 0){
-									printf("Message %s",discut);
-									fflush(stdout);	
-      							}else{
-									printf("It's a trap!\n");
-									fflush(stdout);
-      							}
-   							}
-						}
-					}else{			
-						printf("It's a trap!\n");
-						fflush(stdout);
-					}
-				}else{
-					perror("fgets ");
+				int test = test_request(socket_file);
+				if(test == 200){
+					fprintf(socket_file,"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 8\r\n\r\n200 OK");
+					fflush(socket_file);
 				}
+				if(test == 400){
+					fprintf(socket_file,"HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 14\r\n\r\n400 Bad request");
+					fflush(socket_file);
+				}
+				if(test == 500){
+					printf("REGEX error\n");
+					fflush(stdout);
+				}			
+
 				exit(0);
 			}
 			close(socket_file);
