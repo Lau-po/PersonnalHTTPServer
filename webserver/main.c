@@ -31,8 +31,8 @@ void initialiser_signaux(void){
 
 int test_request(FILE * file){
 	int its_ok = 0; 
-	int err;
-	int match;
+	int err, helper=1;
+	int matchget=1,matchhost=1;
 	char * discut;
 	discut = malloc(sizeof(char)*1024);
 	bzero(discut,1024);
@@ -53,27 +53,30 @@ int test_request(FILE * file){
 		perror("regex2");
 		return 500;
 	}
-	if(fgets(discut,1024,file) !=NULL){
-		match = regexec (&get_reg, discut, 0, NULL, 0);
-		regfree (&get_reg);
-		if(match == 0){
-			bzero(discut,1024);
-			while(fgets(discut,1024,file) != NULL && its_ok != 200){
-				match = regexec (&host_reg, discut, 0, NULL, 0);
-				regfree (&host_reg);
-				if(match == 0){
-					its_ok = 200;
-				}
-				bzero(discut,1024);
-			}
-			if(its_ok == 0){
-				its_ok = 400;
-			}
+	while(helper > 0){
+		fgets(discut,1024,file);
+		if(matchget != 0){	
+			matchget = regexec (&get_reg, discut, 0, NULL, 0);		
+		}else{
+			regfree (&get_reg);
 		}
+		if(matchhost != 0){	
+			matchhost = regexec (&host_reg, discut, 0, NULL, 0);
+		}else{			
+			regfree (&host_reg);
+		}
+		printf("[%d] %s",helper,discut); helper ++;
+		if (strcmp(discut,"\r\n") == 0 ){	
+			helper = -1;	
+		}
+		bzero(discut,1024);
+	}
+	if(matchhost == 0 && matchget == 0){
+		its_ok = 200;
 	}else{
 		its_ok = 400;
-	}
-
+	}		
+	printf("%d\n", its_ok);
 	return its_ok;
 }
 
@@ -111,19 +114,19 @@ int main( int argc , char ** argv )
 					/* traitement d ' erreur */
 				}
 				int test = test_request(socket_file);
+				printf("return %d\n", test);
 				if(test == 200){
-					fprintf(socket_file,"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 8\r\n\r\n200 OK");
+					fprintf(socket_file,"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 8\r\n\r\n200 OK\r\n");
 					fflush(socket_file);
 				}
 				if(test == 400){
-					fprintf(socket_file,"HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 14\r\n\r\n400 Bad request");
+					fprintf(socket_file,"HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 17\r\n\r\n400 Bad request\r\n");
 					fflush(socket_file);
 				}
 				if(test == 500){
-					printf("REGEX error\n");
-					fflush(stdout);
+					fprintf(socket_file,"HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\nContent-Length: 27\r\n\r\n500 Internal Server Error\r\n");
+					fflush(socket_file);
 				}			
-
 				exit(0);
 			}
 			close(socket_file);
