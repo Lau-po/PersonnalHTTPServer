@@ -1,3 +1,12 @@
+/*
+* Authors:
+*- Levoye Camille - Camille.Levoye@Etudiant.univ-lille1.fr
+*- Poulin Laurent - Laurent.Poulin@Etudiant.univ-lille1.fr
+*------
+* Creation d'un serveur HTTP M4101
+*------
+*/
+
 # include <stdio.h>
 # include <string.h>
 # include "socket.h"
@@ -5,7 +14,7 @@
 #define ERR -1
 
 int creer_serveur(int port){
-	
+
 	int socket_serveur,optval = 1;
 
 	struct sockaddr_in saddr ;
